@@ -1,7 +1,7 @@
 import { HttpStatus, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { CreateTaskRequest, GenericResponse, TaskList } from './proto/task.pb';
+import { CompleteTaskRequest, CreateTaskRequest, GenericResponse, GetTaskByIdRequest, TaskList } from './proto/task.pb';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Task } from './entities/task.entity';
 import { Repository } from 'typeorm';
@@ -84,10 +84,55 @@ export class TasksService implements OnModuleInit {
     }
   }
 
-  findOne(id: number) {
-    return `This action returns a #${id} task`;
+  async getTaskById(data: GetTaskByIdRequest): Promise<GenericResponse> {
+    const task = await this.repository.findOneBy({ id: data.id });
+
+    if (!task) {
+      return {
+        status: 404,
+        error: 'Task not found',
+      };
+    }
+
+    return {
+      status: 200,
+      task: {
+        id: task.id,
+        title: task.title,
+        description: task.description,
+        completed: task.completed,
+        createdBy: task.created_by,
+        createdAt: task.created_at.toISOString(),
+      },
+    };
   }
 
+  async completeTask(data: CompleteTaskRequest): Promise<GenericResponse> {
+    const task = await this.repository.findOneBy({ id: data.id });
+
+    if (!task) {
+      return {
+        status: 404,
+        error: 'Task not found',
+      };
+    }
+
+    task.completed = true;
+    const updated = await this.repository.save(task);
+
+    return {
+      status: 200,
+      task: {
+        id: updated.id,
+        title: updated.title,
+        description: updated.description,
+        completed: updated.completed,
+        createdBy: updated.created_by,
+        createdAt: updated.created_at.toISOString(),
+      },
+    };
+  }
+  
   update(id: number, updateTaskDto: UpdateTaskDto) {
     return `This action updates a #${id} task`;
   }
