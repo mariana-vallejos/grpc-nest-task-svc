@@ -16,7 +16,7 @@ export class TasksController {
 
   @MessagePattern('findAllTasks')
   findAll() {
-    return this.tasksService.findAll();
+    return this.tasksService.getAllTasks();
   }
 
   @MessagePattern('findOneTask')
