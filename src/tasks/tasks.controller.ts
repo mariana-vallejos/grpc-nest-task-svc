@@ -9,13 +9,13 @@ import { type CreateTaskRequest, type Empty, GenericResponse, TASK_SERVICE_NAME 
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
-  @GrpcMethod('TaskService', 'CreateTask')
+  @GrpcMethod(TASK_SERVICE_NAME, 'CreateTask')
   async createTask(data: CreateTaskRequest): Promise<GenericResponse> {
     return this.tasksService.create(data);
   }
 
-  @MessagePattern('findAllTasks')
-  findAll() {
+  @GrpcMethod(TASK_SERVICE_NAME, 'getAllTasks')
+  async findAll(_: Empty) : Promise<GenericResponse>{
     return this.tasksService.getAllTasks();
   }
 
