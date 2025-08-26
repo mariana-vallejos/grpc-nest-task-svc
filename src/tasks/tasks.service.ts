@@ -31,7 +31,10 @@ export class TasksService implements OnModuleInit {
       );
 
       if (user.status >= HttpStatus.NOT_FOUND) {
-        return { status: 404, error: 'User not found' };
+        throw new RpcException({
+          code: status.NOT_FOUND,
+          message: 'User not found',
+        });
       }
 
       const task = this.repository.create({
@@ -54,7 +57,13 @@ export class TasksService implements OnModuleInit {
 
       return { status: 201, task: taskProto };
     } catch (err) {
-      return { status: 500, error: 'Internal server error: ' + err.message };
+      if (err instanceof RpcException) {
+        throw err;
+      }
+      throw new RpcException({
+        code: status.INTERNAL,
+        message: 'Internal server error',
+      });
     }
   }
 

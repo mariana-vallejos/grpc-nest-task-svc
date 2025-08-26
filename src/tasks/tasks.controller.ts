@@ -1,9 +1,12 @@
 import { Controller } from '@nestjs/common';
-import { GrpcMethod, MessagePattern, Payload } from '@nestjs/microservices';
+import { GrpcMethod, MessagePattern, Payload, RpcException } from '@nestjs/microservices';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
 import { type CompleteTaskRequest, type CreateTaskRequest, type Empty, GenericResponse, type GetTaskByIdRequest, TASK_SERVICE_NAME } from './proto/task.pb';
+import { plainToInstance } from 'class-transformer';
+import { validate } from 'class-validator';
+import { status } from '@grpc/grpc-js';
 
 @Controller()
 export class TasksController {
@@ -11,6 +14,20 @@ export class TasksController {
 
   @GrpcMethod(TASK_SERVICE_NAME, 'CreateTask')
   async createTask(data: CreateTaskRequest): Promise<GenericResponse> {
+    const dto = plainToInstance(CreateTaskDto, { title: data.title, description: data.description, created_by: data.createdBy });
+    const errors = await validate(dto);
+
+    if (errors.length > 0) {
+      const messages = errors
+        .map((err) => Object.values(err.constraints || {}).join(', '))
+        .join('; ');
+
+      throw new RpcException({
+        code: status.INVALID_ARGUMENT,
+        message: messages,
+      });
+    }
+
     return this.tasksService.create(data);
   }
 

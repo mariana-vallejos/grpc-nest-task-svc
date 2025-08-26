@@ -1,14 +1,12 @@
-import { IsNotEmpty, IsNumber } from "class-validator"
+import { IsNotEmpty, IsNumber, IsOptional } from "class-validator"
 
 export class CreateTaskDto {
     @IsNotEmpty()
     title: string
 
+    @IsOptional()
     description: string
 
-    completed: boolean
-
-    @IsNumber()
     @IsNotEmpty()
-    created_by: number
+    created_by: string
 }
