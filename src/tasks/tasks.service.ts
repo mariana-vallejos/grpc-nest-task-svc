@@ -6,8 +6,9 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Task } from './entities/task.entity';
 import { Repository } from 'typeorm';
 import { USER_SERVICE_NAME, UserServiceClient } from './proto/user.pb';
-import { type ClientGrpc } from '@nestjs/microservices';
+import { RpcException, type ClientGrpc } from '@nestjs/microservices';
 import { firstValueFrom } from 'rxjs';
+import { status } from '@grpc/grpc-js';
 
 @Injectable()
 export class TasksService implements OnModuleInit {
@@ -85,54 +86,84 @@ export class TasksService implements OnModuleInit {
   }
 
   async getTaskById(data: GetTaskByIdRequest): Promise<GenericResponse> {
-    const task = await this.repository.findOneBy({ id: data.id });
+    try {
+      const task = await this.repository.findOneBy({ id: data.id });
 
-    if (!task) {
+      if (!task) {
+        throw new RpcException({
+          code: status.NOT_FOUND,
+          message: 'Task not found',
+        });
+      }
+
+      if (task.completed === true) {
+        throw new RpcException({
+          code: status.FAILED_PRECONDITION,
+          message: 'Task has already been marked as completed',
+        });
+      }
+
+      task.completed = true;
+      const updated = await this.repository.save(task);
+
       return {
-        status: 404,
-        error: 'Task not found',
+        status: 200,
+        task: {
+          id: updated.id,
+          title: updated.title,
+          description: updated.description,
+          completed: updated.completed,
+          createdBy: updated.created_by,
+          createdAt: updated.created_at.toISOString(),
+        },
       };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        code: status.INTERNAL,
+        message: 'Internal server error',
+      });
     }
-
-    return {
-      status: 200,
-      task: {
-        id: task.id,
-        title: task.title,
-        description: task.description,
-        completed: task.completed,
-        createdBy: task.created_by,
-        createdAt: task.created_at.toISOString(),
-      },
-    };
   }
 
   async completeTask(data: CompleteTaskRequest): Promise<GenericResponse> {
-    const task = await this.repository.findOneBy({ id: data.id });
+    try {
+      const task = await this.repository.findOneBy({ id: data.id });
 
-    if (!task) {
+      if (!task) {
+        throw new RpcException({
+          code: status.NOT_FOUND,
+          message: 'Task not found',
+        });
+      }
+
+      task.completed = true;
+      const updated = await this.repository.save(task);
+
       return {
-        status: 404,
-        error: 'Task not found',
+        status: 200,
+        task: {
+          id: updated.id,
+          title: updated.title,
+          description: updated.description,
+          completed: updated.completed,
+          createdBy: updated.created_by,
+          createdAt: updated.created_at.toISOString(),
+        },
       };
+    } catch (error) {
+      if (error instanceof RpcException) {
+        throw error;
+      }
+      throw new RpcException({
+        code: status.INTERNAL,
+        message: 'Internal server error',
+      });
     }
-
-    task.completed = true;
-    const updated = await this.repository.save(task);
-
-    return {
-      status: 200,
-      task: {
-        id: updated.id,
-        title: updated.title,
-        description: updated.description,
-        completed: updated.completed,
-        createdBy: updated.created_by,
-        createdAt: updated.created_at.toISOString(),
-      },
-    };
   }
-  
+
   update(id: number, updateTaskDto: UpdateTaskDto) {
     return `This action updates a #${id} task`;
   }
