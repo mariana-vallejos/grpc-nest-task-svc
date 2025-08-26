@@ -1,16 +1,17 @@
 import { Controller } from '@nestjs/common';
-import { MessagePattern, Payload } from '@nestjs/microservices';
+import { GrpcMethod, MessagePattern, Payload } from '@nestjs/microservices';
 import { TasksService } from './tasks.service';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
+import { type CreateTaskRequest, type Empty, GenericResponse, TASK_SERVICE_NAME } from './proto/task.pb';
 
 @Controller()
 export class TasksController {
   constructor(private readonly tasksService: TasksService) {}
 
-  @MessagePattern('createTask')
-  create(@Payload() createTaskDto: CreateTaskDto) {
-    return this.tasksService.create(createTaskDto);
+  @GrpcMethod('TaskService', 'CreateTask')
+  async createTask(data: CreateTaskRequest): Promise<GenericResponse> {
+    return this.tasksService.create(data);
   }
 
   @MessagePattern('findAllTasks')
