@@ -1,7 +1,13 @@
 import { HttpStatus, Inject, Injectable, OnModuleInit } from '@nestjs/common';
 import { CreateTaskDto } from './dto/create-task.dto';
 import { UpdateTaskDto } from './dto/update-task.dto';
-import { CompleteTaskRequest, CreateTaskRequest, GenericResponse, GetTaskByIdRequest, TaskList } from './proto/task.pb';
+import {
+  CompleteTaskRequest,
+  CreateTaskRequest,
+  GenericResponse,
+  GetTaskByIdRequest,
+  TaskList,
+} from './proto/task.pb';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Task } from './entities/task.entity';
 import { Repository } from 'typeorm';
@@ -105,25 +111,15 @@ export class TasksService implements OnModuleInit {
         });
       }
 
-      if (task.completed === true) {
-        throw new RpcException({
-          code: status.FAILED_PRECONDITION,
-          message: 'Task has already been marked as completed',
-        });
-      }
-
-      task.completed = true;
-      const updated = await this.repository.save(task);
-
       return {
         status: 200,
         task: {
-          id: updated.id,
-          title: updated.title,
-          description: updated.description,
-          completed: updated.completed,
-          createdBy: updated.created_by,
-          createdAt: updated.created_at.toISOString(),
+          id: task.id,
+          title: task.title,
+          description: task.description,
+          completed: task.completed,
+          createdBy: task.created_by,
+          createdAt: task.created_at.toISOString(),
         },
       };
     } catch (error) {
@@ -145,6 +141,13 @@ export class TasksService implements OnModuleInit {
         throw new RpcException({
           code: status.NOT_FOUND,
           message: 'Task not found',
+        });
+      }
+
+      if (task.completed === true) {
+        throw new RpcException({
+          code: status.FAILED_PRECONDITION,
+          message: 'Task has already been marked as completed',
         });
       }
 
